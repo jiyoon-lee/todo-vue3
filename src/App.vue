@@ -1,60 +1,54 @@
 <template>
-  <div>
-    <h1>Todos</h1>
-    <form action="" @submit.prevent="submit">
-      <input type="text" v-model.trim="todo" />
-      <input type="submit" value="SAVE" />
-    </form>
-    <ul>
-      <li v-for="item in getTodos" :key="item.id">
-        <input
-          type="text"
-          v-if="item.editMode"
-          @blur="doneEdit(item.id, $event)"
-          @keyup.enter="doneEdit(item.id, $event)"
-          @keyup.esc="item.editMode = false"
-        />
-        <div v-else>
-          <input type="checkbox" id="checkbox" v-model="item.active" />
-          <span
-            :style="item.active || 'text-decoration: line-through'"
-            @dblclick="item.editMode = true"
-            >{{ item.text }}</span
-          >
-          <button @click="deleteTodo(item.id)">✘</button>
-        </div>
-      </li>
-    </ul>
-    <div class="actions-container">
-      <div>{{ activeItemNum + ' items left' }}</div>
-      <div>
-        <button @click="filterType = 'all'">All</button>
-        <button @click="filterType = 'active'">Active</button>
-        <button @click="filterType = 'completed'">Completed</button>
-      </div>
-      <button @click="clear">Clear completed</button>
+  <div class="container">
+    <NaviItems v-model:todoText="todo" @submit="createTodo" />
+    <div class="card text-center">
+      <TodoItems
+        v-if="getTodos.length > 0"
+        :items="getTodos"
+        @doneEdit="doneEdit"
+        @changeTodoText="changeTodoText"
+        @changeEditMode="changeEditMode"
+        @changeActive="changeActive"
+        @deleteTodo="deleteTodo"
+      />
+      <div v-else class="my-4">등록된 정보가 없습니다.</div>
+      <TodosAction
+        :activeItemNum="activeItemNum"
+        :filterType="filterType"
+        @clear="clear"
+        @changeFilterType="changeFilterType"
+      />
     </div>
   </div>
 </template>
 
 <script>
+import NaviItems from '@/components/NavItems.vue'
+import TodoItems from '@/components/TodoItems.vue'
+import TodosAction from '@/components/TodosAction.vue'
 import { ref, reactive, computed } from 'vue'
 export default {
+  components: {
+    NaviItems,
+    TodoItems,
+    TodosAction
+  },
   setup() {
     const filterType = ref('all')
     const todo = ref('')
     let todos = reactive({
       list: []
     })
-    const submit = () => {
-      console.log('submit')
-      todos.list.push({
-        id: todos.list.length,
-        text: todo.value,
-        active: true,
-        editMode: false
-      })
-      todo.value = ''
+    const createTodo = () => {
+      if (todo.value) {
+        todos.list.push({
+          id: todos.list.length,
+          text: todo.value,
+          active: true,
+          editMode: false
+        })
+        todo.value = ''
+      }
     }
     const getTodos = computed(() => {
       if (filterType.value === 'all') {
@@ -65,17 +59,6 @@ export default {
         return todos.list.filter((item) => !item.active)
       }
     })
-    const doneEdit = (id, e) => {
-      todos.list = todos.list.map((element) => {
-        if (element.id === id) {
-          return {
-            ...element,
-            text: e.target.value,
-            editMode: false
-          }
-        } else return element
-      })
-    }
     // 남은 활성화 todo 개수
     const activeItemNum = computed(() => todos.list.filter((item) => item.active).length)
     // todo 제거
@@ -86,23 +69,71 @@ export default {
     const clear = () => {
       todos.list = []
     }
+    const doneEdit = (id) => {
+      todos.list = todos.list.map((element) => {
+        if (element.id === id) {
+          return {
+            ...element,
+            editMode: false
+          }
+        } else return element
+      })
+    }
+    const changeFilterType = (value) => (filterType.value = value)
+    const changeTodoText = (id, text) => {
+      todos.list = todos.list.map((element) => {
+        if (element.id === id) {
+          return {
+            ...element,
+            text
+          }
+        } else return element
+      })
+    }
+    const changeEditMode = (id) => {
+      todos.list = todos.list.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            editMode: !item.editMode
+          }
+        } else return item
+      })
+    }
+    const changeActive = (id) => {
+      todos.list = todos.list.map((item) => {
+        if (item.id === id) {
+          return {
+            ...item,
+            active: !item.active
+          }
+        } else return item
+      })
+    }
     return {
       todo,
       getTodos,
       filterType,
       activeItemNum,
-      submit,
+      createTodo,
       doneEdit,
       deleteTodo,
-      clear
+      clear,
+      changeTodoText,
+      changeFilterType,
+      changeEditMode,
+      changeActive
     }
   }
 }
 </script>
 
 <style scoped>
-.actions-container {
+.container {
+  min-height: 100vh;
   display: flex;
-  column-gap: 30px;
+  flex-direction: column;
+  justify-content: center;
+  width: 60%;
 }
 </style>
